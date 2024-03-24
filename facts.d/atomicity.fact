@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""
+Tells Ansible if this host is "Atomic" or not based on the existence of '/run/ostree-booted'
+
+Would influence decisions like package manager/file paths. Root filesystem is typically RO.
+"""
 from os import path
 from json import dumps
 
