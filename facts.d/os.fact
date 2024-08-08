@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+"""
+Tells Ansible additional details about the OS/host
+ie: if "Atomic" (immutable/OSTree), cloud-cfg based, or booted w/ EFI
+"""
+from os import path
+from json import dumps
+
+print(dumps({
+    "is_atomic": path.exists('/run/ostree-booted'),
+    "is_cloudy": path.exists('/etc/cloud/cloud.cfg'),
+    "is_efi": path.exists('/sys/firmware/efi')
+}), flush=True)
