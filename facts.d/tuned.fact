@@ -32,7 +32,6 @@ ACTIVE_FILE = '/etc/tuned/active_profile'
 PID_FILE = '/run/tuned/tuned.pid'
 TUNED_RUNNING = is_tuned_running()
 
-
 print(dumps({
     "active": TUNED_RUNNING,
     "selected_profile": readcm(ACTIVE_FILE) if TUNED_RUNNING else "inactive"
