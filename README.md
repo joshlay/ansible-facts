@@ -1,7 +1,9 @@
 # custom-facts
 
-Place these in `/etc/ansible/facts.d` so that Ansible will read/execute them.
+Place these in `/etc/ansible/facts.d` so that Ansible may learn more about your systems.
 [More information](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_vars_facts.html#adding-custom-facts)
+
+The scripts will require executable permissions
 
 ## Preview
 
