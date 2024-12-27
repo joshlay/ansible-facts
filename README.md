@@ -33,12 +33,6 @@ localhost | SUCCESS => {
                     }
                 }
             },
-            "atomicity": {
-                "is_atomic": false
-            },
-            "cloudcfg": {
-                "is_cloudy": false
-            },
             "os": {
                 "is_atomic": false,
                 "is_cloudy": false,
