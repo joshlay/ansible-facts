@@ -1,0 +1,78 @@
+#!/usr/bin/python3
+"""AMD GPU stat facts for Ansible
+Place at '/etc/ansible/facts.d/amdgpu.fact' and give executable permissions
+
+A block of 'amdgpu' facts should appear under 'ansible_local'"""
+from glob import glob
+from os import path, readlink
+from json import dumps
+
+
+def find_cards():
+    """For reporting AMD GPU stats, search for DRM sysfs entries w/ 'amdgpu' driver loaded
+
+    Returns a dictionary w/ hwmon directory paths and (relative) device entries.
+    If no AMD GPUs are found, this will be empty."""
+    cards = {}
+    hwmon_names = glob("/sys/class/drm/card*/device/hwmon/hwmon*/name")
+    for hwmon_name_file in hwmon_names:
+        with open(hwmon_name_file, "r", encoding="utf-8") as _f:
+            if _f.read().strip() == "amdgpu":
+                # found an amdgpu
+                _card = hwmon_name_file.split("/")[4]
+                _hwmon_dir = path.dirname(hwmon_name_file)
+                cards[_card] = {
+                    "hwmon_dir": _hwmon_dir,
+                    "device": readlink(path.join(_hwmon_dir, "device")),
+                }
+    return dict(sorted(cards.items()))
+
+
+def read_stat(file: str) -> str:
+    """Handles reading a stat file, stripping the contents, and managing the type.
+
+    Requires a file/path, returns contents. Results w/ numbers are made ints for arithmetic."""
+    # original version of this func took an arg to convert uWatts to Watts
+    # dropped to retain exactness
+    if path.exists(file):
+        with open(file, "r", encoding="utf-8") as _fh:
+            data = _fh.read().strip()
+            return int(data) if data.isdigit() else data  # check if int, convert before returning
+    else:
+        return None
+
+
+def get_power_stats(hwmon_dir) -> dict:
+    """Given an AMD GPU hwmon directory which provides stats, returns a dictionary of power stats
+
+    ie: board capability, limits, usage"""
+    # get all 'power1_*' files; identifying base power stats for the given card/hwmon dir
+    pwr1_statfiles = sorted(glob(path.join(hwmon_dir, "power1_*")))
+
+    # handle bulk of stats (minus calculated %) w/ comprehension
+    power_stats = {
+        path.basename(statfile): read_stat(statfile) for statfile in pwr1_statfiles
+    }
+
+    # to determine usage %, we have to handle measurements - there is drift in this regard
+    # driver/card may offer instant (input) or aggregated measurements (average)
+    power_stats["power1_use_pct"] = None
+
+    # ensure both numerator and denominator exist before calculating power limit use %
+    if "power1_cap" in power_stats:
+        for numerator in ["power1_input", "power1_average"]:
+            if numerator in power_stats:
+                power_stats["power1_use_pct"] = round(
+                    (power_stats[numerator] / power_stats["power1_cap"]) * 100, 1
+                )
+
+    return power_stats
+
+
+amdgpus = find_cards()
+stats = {
+    gpu: {"power": get_power_stats(details["hwmon_dir"])}
+    for gpu, details in amdgpus.items()
+}
+
+print(dumps({"cards": amdgpus, "stats": stats}), flush=True)
