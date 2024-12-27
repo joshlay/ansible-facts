@@ -14,11 +14,11 @@ def readcm(file):
 
 def is_tuned_running():
     '''Attempts to read the PID file for 'tuned' and /proc to report status'''
-    if not path.exists(PID_FILE):
+    if not path.exists('/run/tuned/tuned.pid'):
         return False
 
     try:
-        pid = readcm(PID_FILE)
+        pid = readcm('/run/tuned/tuned.pid')
         pidfile_content = readcm(f'/proc/{pid}/comm')
     except FileNotFoundError:
         return False
@@ -27,12 +27,10 @@ def is_tuned_running():
         return True
     return False
 
-# the 'active' file exists even when the service is stopped; cannot indicate running state
-ACTIVE_FILE = '/etc/tuned/active_profile'
-PID_FILE = '/run/tuned/tuned.pid'
 TUNED_RUNNING = is_tuned_running()
 
+# NOTE: the 'active' file exists even when the service is stopped; cannot indicate running state
 print(dumps({
     "active": TUNED_RUNNING,
-    "selected_profile": readcm(ACTIVE_FILE) if TUNED_RUNNING else "inactive"
+    "selected_profile": readcm('/etc/tuned/active_profile') if TUNED_RUNNING else "inactive"
 }), flush=True)
